@@ -1,53 +1,59 @@
-(function(){
-  angular.module('starter')
-  .controller('HomeController', ['$scope', '$state', 'DeviceFactory', HomeController]);
+angular.module('starter')
+    .controller('HomeController', function($scope, $state, DeviceFactory, $ionicPlatform, $ionicLoading) {
 
-  function HomeController($scope, $state, DeviceFactory){
+        $scope.devices = []; // the devices listed in the page
 
-    $scope.devices = []; // the devices listed in the page
-
-    $scope.scan = function(){
-
-      DeviceFactory.reset();
-      ble.startScan(
-        [],
-        function(device){
-          if(device.name){
-            DeviceFactory.addDevice({ 'id': device.id, 'name': device.name });
-          }
-        },
-        function(err){
-          alert('Scanning failed. Please try again.');
-        }
-      );
-
-      setTimeout(
-          ble.stopScan,
-          1500,
-          function(){
-            $scope.$apply(function(){
-              $scope.devices = DeviceFactory.getDevices();
+        $scope.scan = function() {
+            $scope.devices = [];
+            DeviceFactory.reset();
+            $ionicLoading.show({
+                template: 'Scanning...'
             });
-          },
-          function(){
-            // Stopping scan failed
-          }
-      );
+            ble.startScan(
+                [],
+                function(device) {
+                    if (device.name) {
+                        DeviceFactory.addDevice({ 'id': device.id, 'name': device.name });
+                    }
+                },
+                function(err) {
+                    alert('Scanning failed. Please try again.');
+                    $ionicLoading.hide();
+                }
+            );
 
-    }
+            setTimeout(
+                ble.stopScan,
+                1500,
+                function() {
+                    $scope.$apply(function() {
+                        $scope.devices = DeviceFactory.getDevices();
+                        $ionicLoading.hide();
+                    });
+                },
+                function() {
+                    alert('Stop Scanning failed. Please try again.');
+                    $ionicLoading.hide();
+                }
+            );
 
-    $scope.connect = function(device_id){
-      ble.connect(
-        device_id,
-        function(res){
-          $state.go('device', { 'id': device_id });
-        },
-        function(err){
-          alert('Something went wrong while trying to connect. Please try again');
         }
-      );
-    }
 
-  }
+        $scope.connect = function(device_id) {
+            ble.connect(
+                device_id,
+                function(res) {
+                    console.log(res);
+                    $state.go('device', { 'id': device_id });
+                },
+                function(err) {
+                    console.log(err);
+                    alert(err.errorMessage || 'Something went wrong while trying to connect. Please try again');
+                }
+            );
+        }
 
-})();
+        $ionicPlatform.ready(function() {
+            $scope.scan();
+        });
+    });
